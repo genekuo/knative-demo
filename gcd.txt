@@ -1,0 +1,52 @@
+gcloud info
+
+gcloud config set project [PROJECT_ID]
+gcloud config set compute/zone [ZONE]
+
+gcloud container clusters create knative-demo
+
+gcloud container clusters get-credentials knative-demo
+
+kubectl version
+
+[Install knative CLI]
+mkdir knative
+cd knative/
+git clone https://github.com/knative/client.git
+cd client/
+hack/build.sh -f
+sudo cp kn /usr/local/bin
+kn version
+
+[Install knative core]
+./install-knative.sh
+
+kubectl get deployments -n knative-serving
+
+kubectl get service kourier -n kourier-system
+
+kn service list
+
+kn service create hello --image gcr.io/knative-samples/helloworld-go --env TARGET=First
+kn service update hello --env TARGET=Second
+
+curl http://hello.default.[IP].nip.io
+
+kn revision list
+kn revision describe [hello...]
+
+kn service update hello --image gcr.io/knative-samples/helloworld-rust
+
+kn service update hello \
+--traffic [REVISION-ID]=50 \
+--traffic [REVISION-ID]=50
+
+kn service describe hello
+kn route describe hello
+kn service delete hello
+
+kubectl apply -f apps.yaml
+kn service describe helloworld
+curl  http://helloworld.default.[Cluster-IP].nip.io
+
+gcloud container clusters delete knative-demo

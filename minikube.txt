@@ -1,0 +1,55 @@
+minikube start
+minikube config set kubernetes-version v1.19.0
+minikube config set memory 4000
+minikube config set cpus 4
+
+minikube delete
+minikube start
+
+[Install knative CLI]
+mkdir knative
+cd knative/
+git clone https://github.com/knative/client.git
+cd client/
+hack/build.sh -f
+sudo cp kn /usr/local/bin
+kn version
+
+[Install knative core]
+export KNATIVE="0.17.2"
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE/serving-crds.yaml
+kubectl apply -f https://github.com/knative/serving/releases/download/v$KNATIVE/serving-core.yaml
+
+kubectl get deployments -n knative-serving
+
+[Install kourier]
+export KOURIER="0.17.0"
+kubectl apply -f https://github.com/knative/net-kourier/releases/download/v$KOURIER/kourier.yaml
+kubectl get deployments -n kourier-system
+
+kubectl patch configmap/config-network \
+  --namespace knative-serving \
+  --type merge \
+  --patch '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+
+kubectl get deployments -n knative-serving
+
+minikube tunnel
+kubectl get service kourier -n kourier-system
+kubectl patch configmap -n knative-serving config-domain -p "{\"data\": {\"[Cluster-IP].nip.io\": \"\"}}"
+Cluster-IP
+
+kn service create hello --image gcr.io/knative-samples/helloworld-go
+kn service create hello --image gcr.io/knative-samples/helloworld-go --namespace hello
+
+curl http://hello.default.[Cluster-IP].nip.io
+
+hey -z 10s -c 500 http://hello.default.[Cluster-IP].nip.io
+
+kn service describe hello
+kn route describe hello
+kn service delete hello
+
+kubectl apply -f apps.yaml
+kn service describe helloworld
+curl  http://helloworld.default.[Cluster-IP].nip.io
